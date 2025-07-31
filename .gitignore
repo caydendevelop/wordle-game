@@ -1,0 +1,32 @@
+# Java / Spring Boot
+/server/target/
+/server/.mvn/
+/server/mvnw
+/server/mvnw.cmd
+*.log
+*.jar
+*.war
+
+# Node / React / Vite
+/client/node_modules/
+/client/dist/
+/client/build/
+/client/.env.local
+/client/.env.production.local
+npm-debug.log*
+yarn-debug.log*
+package-lock.json
+
+# IDE files
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Environment variables
+.env
+
