@@ -18,7 +18,7 @@ public class WordleApplication {
 			@Override
 			public void addCorsMappings(CorsRegistry registry) {
 				registry.addMapping("/api/**")
-								.allowedOriginPatterns("*")
+								.allowedOriginPatterns("https://select-woodcock-lately.ngrok-free.app")
 								.allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
 								.allowedHeaders("*")
 								.allowCredentials(true)
