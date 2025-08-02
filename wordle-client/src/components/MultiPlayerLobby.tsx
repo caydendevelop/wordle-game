@@ -342,8 +342,8 @@ const MultiPlayerLobby: React.FC<MultiPlayerLobbyProps> = ({
 
    // Show game finished state
 if (currentRoom?.status === 'FINISHED') {
-  // Find the winner (player with rank 1 or hasWon = true)
-  const winner = currentRoom.players.find(player => player.rank === 1 || player.won || player.hasWon);
+  // Find the winner (player hasWon = true)
+  const winner = currentRoom.players.find(player => player.won || player.hasWon);
   const isCurrentPlayerWinner = winner && winner.playerId === playerId;
   
   return (
@@ -357,7 +357,6 @@ if (currentRoom?.status === 'FINISHED') {
         ) : (
           <div className="loser-announcement">
             <h2>Game Over</h2>
-            <p>Game ended! {winner ? winner.username || winner.playerId : 'A player'} guessed the correct word.</p>
             {currentRoom.currentWord && (
               <p className="correct-word">The word was: <strong>{currentRoom.currentWord}</strong></p>
             )}

@@ -239,7 +239,7 @@ const MultiPlayerGame: React.FC<MultiPlayerGameProps> = ({
                 ) : (
                   <div>
                     <h3>😔 Game Over</h3>
-                    <p>The word was: <strong>{gameState.targetWord}</strong></p>
+                    
                   </div>
                 )}
               </div>
