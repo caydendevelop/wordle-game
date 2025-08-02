@@ -199,7 +199,7 @@ const MultiPlayerGame: React.FC<MultiPlayerGameProps> = ({
         <div className="game-title">
           <h2>Multiplayer Wordle</h2>
           <div className="room-info">
-            <span>Room: {roomId}</span>
+            <span>Room: {roomId}    |   </span>
             <span>Player: {playerId}</span>
           </div>
         </div>
@@ -265,9 +265,9 @@ const MultiPlayerGame: React.FC<MultiPlayerGameProps> = ({
                   className={`player-status ${player.playerId === playerId ? 'current-player' : ''} ${player.finished ? 'finished' : ''}`}
                 >
                   <div className="player-header">
-                    <span className="player-name">
+                   <span className="player-name">
                       {player.username || player.playerId}
-                      {player.playerId === playerId && ' (You)'}
+                       <span> {player.playerId === playerId && ' (You) '} : </span>
                     </span>
                     {player.rank && <span className="rank">#{player.rank}</span>}
                   </div>

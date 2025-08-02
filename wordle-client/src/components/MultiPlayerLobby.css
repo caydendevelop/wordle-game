@@ -189,3 +189,128 @@ button:disabled {
   cursor: not-allowed;
 }
 
+.game-finished {
+  text-align: center;
+  padding: 2rem;
+}
+
+.game-result-header {
+  margin-bottom: 2rem;
+  padding: 1.5rem;
+  border-radius: 10px;
+}
+
+.winner-announcement {
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+  color: white;
+  animation: celebrate 0.6s ease-in-out;
+}
+
+.winner-announcement h2 {
+  font-size: 2.2rem;
+  margin-bottom: 0.5rem;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+}
+
+.loser-announcement {
+  background: linear-gradient(135deg, #f87171, #ef4444);
+  color: white;
+}
+
+.loser-announcement h2 {
+  font-size: 1.8rem;
+  margin-bottom: 0.5rem;
+}
+
+.correct-word {
+  font-size: 1.1rem;
+  margin-top: 1rem;
+  padding: 0.5rem 1rem;
+  background: rgba(255,255,255,0.2);
+  border-radius: 6px;
+  display: inline-block;
+}
+
+.correct-word strong {
+  font-size: 1.3rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.final-results {
+  margin-top: 2rem;
+}
+
+.players-results {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin: 1rem 0;
+}
+
+.player-result {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #f8fafc;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  border: 2px solid #e2e8f0;
+}
+
+.player-result.current-player {
+  background: #e0f2fe;
+  border-color: #0ea5e9;
+}
+
+.player-result.winner {
+  background: #dcfce7;
+  border-color: #22c55e;
+}
+
+.player-result .rank {
+  font-size: 1.2rem;
+  font-weight: bold;
+  min-width: 40px;
+}
+
+.player-result .name {
+  flex-grow: 1;
+  font-weight: 600;
+  text-align: left;
+  margin-left: 1rem;
+}
+
+.player-result .guesses {
+  color: #64748b;
+  font-weight: 500;
+}
+
+.player-result .status {
+  font-weight: 600;
+  margin-left: 1rem;
+}
+
+@keyframes celebrate {
+  0% { transform: scale(0.8); opacity: 0; }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@media (max-width: 600px) {
+  .player-result {
+    flex-direction: column;
+    text-align: center;
+    gap: 0.5rem;
+  }
+  
+  .player-result .name {
+    margin-left: 0;
+  }
+  
+  .player-result .status {
+    margin-left: 0;
+  }
+}
+
+

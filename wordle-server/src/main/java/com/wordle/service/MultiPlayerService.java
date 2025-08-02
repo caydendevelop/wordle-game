@@ -70,7 +70,7 @@ public class MultiPlayerService {
     // Get random word
     List<String> wordList = wordleService.getWordList();
     String targetWord = wordList.get(new Random().nextInt(wordList.size()));
-
+    System.out.println(String.format("targetWord is %s", targetWord));
     room.setCurrentWord(targetWord);
     room.setStatus(MultiPlayerRoom.RoomStatus.IN_PROGRESS);
 

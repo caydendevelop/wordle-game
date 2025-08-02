@@ -344,31 +344,58 @@ const MultiPlayerLobby: React.FC<MultiPlayerLobbyProps> = ({
       );
     }
 
-    // Show game finished state
-    if (currentRoom?.status === 'FINISHED') {
-      return (
-        <div className="game-finished">
-          <h2>Game Finished!</h2>
-          <div className="final-results">
-            <h3>Final Results:</h3>
-            <div className="players-results">
-              {currentRoom.players
-                .sort((a, b) => (a.rank || 999) - (b.rank || 999))
-                .map((player: Player) => (
-                  <div key={player.playerId} className="player-result">
-                    <span className="rank">#{player.rank || '-'}</span>
-                    <span className="name">{player.username || player.playerId}</span>
-                    <span className="guesses">{player.guesses?.length || 0}/6 guesses</span>
-                  </div>
-                ))}
-            </div>
+   // Show game finished state
+if (currentRoom?.status === 'FINISHED') {
+  // Find the winner (player with rank 1 or hasWon = true)
+  const winner = currentRoom.players.find(player => player.rank === 1 || player.won || player.hasWon);
+  const isCurrentPlayerWinner = winner && winner.playerId === playerId;
+  
+  return (
+    <div className="game-finished">
+      <div className="game-result-header">
+        {isCurrentPlayerWinner ? (
+          <div className="winner-announcement">
+            <h2>🎉 You Win! 🎉</h2>
+            <p>Congratulations! You guessed the word correctly!</p>
           </div>
-          <button onClick={handleLeaveRoom} className="back-button">
-            Back to Room Selection
-          </button>
+        ) : (
+          <div className="loser-announcement">
+            <h2>Game Over</h2>
+            <p>Game ended! {winner ? winner.username || winner.playerId : 'A player'} guessed the correct word.</p>
+            {currentRoom.currentWord && (
+              <p className="correct-word">The word was: <strong>{currentRoom.currentWord}</strong></p>
+            )}
+          </div>
+        )}
+      </div>
+      
+      <div className="final-results">
+        <h3>Final Results:</h3>
+        <div className="players-results">
+          {currentRoom.players
+            .sort((a, b) => (a.rank || 999) - (b.rank || 999))
+            .map((player: Player) => (
+              <div key={player.playerId} className={`player-result ${player.playerId === playerId ? 'current-player' : ''} ${(player.won || player.hasWon) ? 'winner' : ''}`}>
+                <span className="rank">
+                  {player.rank === 1 || player.won || player.hasWon ? '👑' : `#${player.rank || '-'}`}
+                </span>
+                <span className="name">{player.username || player.playerId}</span>
+                <span className="guesses">{player.guesses?.length || 0}/6 guesses</span>
+                <span className="status">
+                  {player.won || player.hasWon ? '✅ Won' : '❌ Lost'}
+                </span>
+              </div>
+            ))}
         </div>
-      );
-    }
+      </div>
+      
+      <button onClick={handleLeaveRoom} className="back-button">
+        Back to Room Selection
+      </button>
+    </div>
+  );
+}
+
 
     // Default view: Show available rooms with real-time updates
     return (
