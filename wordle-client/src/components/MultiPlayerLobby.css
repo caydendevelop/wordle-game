@@ -1,0 +1,191 @@
+.multiplayer-container {
+  max-width: 850px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.room-selection,
+.multiplayer-lobby,
+.game-finished,
+.error-container {
+  background: #fff;
+  padding: 2.2rem 1.5rem;
+  border-radius: 11px;
+  box-shadow: 0 8px 32px rgba(0,0,40,.06);
+  margin-bottom: 2rem;
+  margin-top: 2rem;
+}
+
+.lobby-header,
+.room-selection-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.room-info,
+.players-section,
+.room-actions,
+.available-rooms,
+.game-controls,
+.final-results {
+  margin-top: 1.4rem;
+  margin-right: 1rem;
+}
+
+.players-list,
+.rooms-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.player-item,
+.room-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #f7fafc;
+  padding: 0.85rem 1.2rem;
+  border-radius: 7px;
+  border: 1px solid #e2e8f0;
+}
+
+.player-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.player-name {
+  font-weight: 600;
+}
+
+.host-badge,
+.you-badge {
+  background: linear-gradient(90deg,#0284c7 80%, #22d3ee 100%);
+  color: #fff;
+  font-size: 0.73rem;
+  padding: 1.5px 10px;
+  border-radius: 9px;
+  margin-left: 0.45rem;
+  letter-spacing: .03em;
+}
+
+.status {
+  font-weight: 500;
+  text-transform: capitalize;
+}
+
+.status.waiting {
+  color: #f59e0b;
+}
+.status.in_progress {
+  color: #22c55e;
+}
+.status.finished {
+  color: #ef4444;
+}
+
+.primary-button,
+.join-room-btn,
+.leave-button,
+.start-game-btn,
+.back-button,
+.create-room-btn {
+  padding: 0.58rem 1.3rem;
+  border: none;
+  border-radius: 6px;
+  background: linear-gradient(90deg, #2563eb 45%, #38bdf8 105%);
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+  transition: background 0.2s, box-shadow 0.2s;
+}
+
+button:disabled {
+  background: #a4aec8 !important;
+  cursor: not-allowed;
+}
+
+.primary-button:hover,
+.join-room-btn:hover,
+.leave-button:hover,
+.start-game-btn:hover,
+.back-button:hover,
+.create-room-btn:hover {
+  background: linear-gradient(90deg, #3b82f6 45%, #0ea5e9 105%);
+  box-shadow: 0 2px 18px rgba(37,99,235, 0.07);
+}
+
+.error-message {
+  color: #dc2626;
+  font-weight: 500;
+  margin-top: 1rem;
+}
+
+.input,
+.player-id-input {
+  width: 100%;
+  max-width: 240px;
+  padding: 0.5rem 0.8rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 5px;
+  margin-top: 0.5rem;
+  margin-left: 0.5rem;
+  background: #f8fafc;
+  color: #000000;
+}
+
+.no-rooms {
+  color: #64748b;
+  padding: 0.75rem;
+  background: #f1f5f9;
+  text-align: center;
+  border-radius: 7px;
+}
+
+@media (max-width: 700px) {
+  .multiplayer-container {
+    padding: 0.7rem 0.2rem;
+  }
+  .room-selection, .multiplayer-lobby {
+    padding: 1rem 0.4rem;
+  }
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.rooms-status {
+  font-size: 0.875rem;
+  color: #22c55e;
+  font-weight: 500;
+}
+
+.refresh-rooms-btn {
+  padding: 0.5rem 1rem;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background-color: #f9fafb;
+  color: #374151;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.refresh-rooms-btn:hover {
+  background-color: #f3f4f6;
+  border-color: #9ca3af;
+}
+
+.refresh-rooms-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+

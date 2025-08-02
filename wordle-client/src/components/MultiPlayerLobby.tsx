@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { WordleAPI } from '../services/api';
 import MultiPlayerGame from './MultiPlayerGame';
 import { MultiPlayerRoom, Player } from '../types/game';
+import './MultiPlayerLobby.css';
 
 interface MultiPlayerLobbyProps {
   onLeaveRoom: () => void;
@@ -17,15 +18,34 @@ const MultiPlayerLobby: React.FC<MultiPlayerLobbyProps> = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [roomPollingInterval, setRoomPollingInterval] = useState<NodeJS.Timeout | null>(null);
+  const [roomsPollingInterval, setRoomsPollingInterval] = useState<NodeJS.Timeout | null>(null);
   const [wsConnected, setWsConnected] = useState(false);
+  const isMountedRef = useRef(true);
 
-  // Load available rooms on component mount
+  // Fetch available rooms function
+  const fetchAvailableRooms = async () => {
+    try {
+      const rooms = await WordleAPI.getAvailableRooms();
+      if (isMountedRef.current) {
+        setAvailableRooms(rooms || []);
+      }
+    } catch (err) {
+      console.error('Failed to fetch available rooms:', err);
+      if (isMountedRef.current && !currentRoom) {
+        setError('Failed to load available rooms');
+      }
+    }
+  };
+
+  // Load available rooms on component mount and set up polling
   useEffect(() => {
+    isMountedRef.current = true;
+    
+    // Initial load
     const loadAvailableRooms = async () => {
       try {
         setLoading(true);
-        const rooms = await WordleAPI.getAvailableRooms();
-        setAvailableRooms(rooms || []);
+        await fetchAvailableRooms();
       } catch (err) {
         console.error('Failed to load available rooms:', err);
         setError('Failed to load available rooms');
@@ -35,7 +55,21 @@ const MultiPlayerLobby: React.FC<MultiPlayerLobbyProps> = ({
     };
 
     loadAvailableRooms();
-  }, []);
+
+    // Set up polling for available rooms (only when not in a specific room)
+    if (!currentRoom) {
+      const interval = setInterval(fetchAvailableRooms, 3000); // Poll every 3 seconds
+      setRoomsPollingInterval(interval);
+    }
+
+    return () => {
+      isMountedRef.current = false;
+      if (roomsPollingInterval) {
+        clearInterval(roomsPollingInterval);
+        setRoomsPollingInterval(null);
+      }
+    };
+  }, [currentRoom]); // Re-run when currentRoom changes
 
   // Load specific room data when a room is selected
   useEffect(() => {
@@ -45,7 +79,7 @@ const MultiPlayerLobby: React.FC<MultiPlayerLobbyProps> = ({
       try {
         setLoading(true);
         const room = await WordleAPI.getMultiPlayerRoom(selectedRoomId);
-        if (room) {
+        if (room && isMountedRef.current) {
           setCurrentRoom(room);
         } else {
           setError('Room not found');
@@ -61,13 +95,20 @@ const MultiPlayerLobby: React.FC<MultiPlayerLobbyProps> = ({
     loadRoom();
   }, [selectedRoomId]);
 
-  // Set up room polling when in a room but WebSocket isn't working
+  // Set up room polling when in a specific room
   useEffect(() => {
     if (currentRoom && (currentRoom.status === 'WAITING' || currentRoom.status === 'IN_PROGRESS')) {
+      // Clear rooms polling when in a specific room
+      if (roomsPollingInterval) {
+        clearInterval(roomsPollingInterval);
+        setRoomsPollingInterval(null);
+      }
+
+      // Start room-specific polling
       const interval = setInterval(async () => {
         try {
           const updatedRoom = await WordleAPI.getMultiPlayerRoom(currentRoom.roomId);
-          if (updatedRoom && JSON.stringify(updatedRoom) !== JSON.stringify(currentRoom)) {
+          if (updatedRoom && JSON.stringify(updatedRoom) !== JSON.stringify(currentRoom) && isMountedRef.current) {
             console.log('Room updated via polling:', updatedRoom);
             setCurrentRoom(updatedRoom);
           }
@@ -85,6 +126,12 @@ const MultiPlayerLobby: React.FC<MultiPlayerLobbyProps> = ({
       if (roomPollingInterval) {
         clearInterval(roomPollingInterval);
         setRoomPollingInterval(null);
+      }
+
+      // Resume rooms polling when not in a specific room
+      if (!roomsPollingInterval && !currentRoom) {
+        const interval = setInterval(fetchAvailableRooms, 3000);
+        setRoomsPollingInterval(interval);
       }
     }
   }, [currentRoom]);
@@ -166,6 +213,7 @@ const MultiPlayerLobby: React.FC<MultiPlayerLobbyProps> = ({
   };
 
   const handleLeaveRoom = () => {
+    // Clear all polling intervals
     if (roomPollingInterval) {
       clearInterval(roomPollingInterval);
       setRoomPollingInterval(null);
@@ -176,22 +224,21 @@ const MultiPlayerLobby: React.FC<MultiPlayerLobbyProps> = ({
     setSelectedRoomId(null);
     setError(null);
     
-    // Refresh available rooms
-    const loadAvailableRooms = async () => {
-      try {
-        const rooms = await WordleAPI.getAvailableRooms();
-        setAvailableRooms(rooms || []);
-      } catch (err) {
-        console.error('Failed to refresh rooms:', err);
-      }
-    };
-    loadAvailableRooms();
+    // Immediately refresh available rooms and resume polling
+    fetchAvailableRooms();
+    const interval = setInterval(fetchAvailableRooms, 3000);
+    setRoomsPollingInterval(interval);
   };
 
   const handleBackToMainLobby = () => {
+    // Clear all polling intervals
     if (roomPollingInterval) {
       clearInterval(roomPollingInterval);
       setRoomPollingInterval(null);
+    }
+    if (roomsPollingInterval) {
+      clearInterval(roomsPollingInterval);
+      setRoomsPollingInterval(null);
     }
     onLeaveRoom();
   };
@@ -323,14 +370,19 @@ const MultiPlayerLobby: React.FC<MultiPlayerLobbyProps> = ({
       );
     }
 
-    // Default view: Show available rooms
+    // Default view: Show available rooms with real-time updates
     return (
       <div className="room-selection">
         <div className="room-selection-header">
           <h2>Multiplayer Lobby</h2>
-          <button onClick={handleBackToMainLobby} className="back-button">
-            Back to Main Menu
-          </button>
+          <div className="header-actions">
+            <span className="rooms-status">
+              🔄 Auto-updating every 3s
+            </span>
+            <button onClick={handleBackToMainLobby} className="back-button">
+              Back to Main Menu
+            </button>
+          </div>
         </div>
 
         <div className="player-input">
@@ -353,10 +405,17 @@ const MultiPlayerLobby: React.FC<MultiPlayerLobbyProps> = ({
           >
             {loading ? 'Creating...' : 'Create New Room'}
           </button>
+          <button 
+            onClick={fetchAvailableRooms}
+            disabled={loading}
+            className="refresh-rooms-btn"
+          >
+            🔄 Refresh Rooms
+          </button>
         </div>
 
         <div className="available-rooms">
-          <h3>Available Rooms</h3>
+          <h3>Available Rooms ({availableRooms.length})</h3>
           {availableRooms.length === 0 ? (
             <div className="no-rooms">
               <p>No rooms available. Create a new room to get started!</p>

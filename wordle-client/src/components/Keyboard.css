@@ -1,80 +1,66 @@
 .keyboard {
-  margin: 20px 0;
-  max-width: 500px;
+  margin: 1.2rem 0 0.8rem 0;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
 }
 
 .keyboard-row {
   display: flex;
   justify-content: center;
   gap: 6px;
-  margin-bottom: 8px;
 }
 
 .key {
-  min-width: 43px;
-  height: 58px;
-  background-color: #d3d6da;
+  min-width: 40px;
+  height: 54px;
+  font-size: 1.09rem;
+  padding: 0.4rem;
   border: none;
-  border-radius: 4px;
-  font-size: 1.25rem;
-  font-weight: bold;
+  background: #e2e8f0;
+  border-radius: 6px;
+  font-weight: 600;
+  color: #222;
   cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  text-transform: uppercase;
-  color: #000;
-  transition: background-color 0.1s ease-in-out;
-  user-select: none;
+  transition: background 0.17s;
 }
 
-.key-special {
-  min-width: 65px;
-  font-size: 0.75rem;
-  padding: 0 8px;
-}
-
-.key:hover:not(.key-disabled) {
-  background-color: #f3f3f3;
-}
-
-.key:active:not(.key-disabled) {
-  background-color: #e0e0e0;
-}
-
-.key-disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
+.key:hover {
+  background: #bae6fd;
 }
 
 .key-hit {
-  background-color: #6aaa64 !important;
-  color: #fff;
+  background: #22c55e !important;
+  color: #fff !important;
 }
 
 .key-present {
-  background-color: #c9b458 !important;
-  color: #fff;
+  background: #facc15 !important;
+  color: #fff !important;
 }
 
 .key-miss {
-  background-color: #787c7e !important;
-  color: #fff;
+  background: #94a3b8 !important;
+  color: #fff !important;
 }
 
-@media (max-width: 480px) {
+.key-disabled {
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+.key-special {
+  min-width: 60px;
+  font-size: 0.95rem;
+}
+
+@media (max-width: 600px) {
   .key {
-    min-width: 35px;
-    height: 50px;
-    font-size: 1rem;
+    min-width: 29px;
+    height: 36px;
+    font-size: 0.85rem;
   }
-  
-  .key-special {
-    min-width: 55px;
-    font-size: 0.7rem;
-  }
-  
-  .keyboard-row {
+  .keyboard {
     gap: 4px;
   }
 }
