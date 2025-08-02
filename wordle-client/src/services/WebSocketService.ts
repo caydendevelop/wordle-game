@@ -3,9 +3,6 @@ import { Client } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
 
 const getApiBaseUrl = (): string => {
-  if (import.meta.env.PROD) {
-    return import.meta.env.VITE_API_URL || 'http://localhost:8080';
-  }
   return 'http://localhost:8080';
 };
 

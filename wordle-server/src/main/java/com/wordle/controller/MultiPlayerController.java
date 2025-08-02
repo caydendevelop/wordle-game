@@ -1,12 +1,15 @@
 package com.wordle.controller;
 
+import com.wordle.model.GuessResult;
 import com.wordle.model.MultiPlayerRoom;
+import com.wordle.model.Player;
 import com.wordle.service.MultiPlayerService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.handler.annotation.DestinationVariable;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -87,4 +90,93 @@ public class MultiPlayerController {
   public ResponseEntity<List<MultiPlayerRoom>> getAvailableRooms() {
     return ResponseEntity.ok(multiPlayerService.getAvailableRooms());
   }
+
+  // Add these endpoints to your MultiPlayerController class
+
+  @GetMapping("/game-state/{roomId}/{playerId}")
+  public ResponseEntity<?> getGameState(@PathVariable String roomId, @PathVariable String playerId) {
+    try {
+      MultiPlayerRoom room = multiPlayerService.getRoom(roomId);
+      if (room == null) {
+        return ResponseEntity.badRequest().body(Map.of("error", "Room not found"));
+      }
+
+      Player player = room.getPlayers().stream()
+              .filter(p -> p.getPlayerId().equals(playerId))
+              .findFirst()
+              .orElse(null);
+
+      if (player == null) {
+        return ResponseEntity.badRequest().body(Map.of("error", "Player not found"));
+      }
+
+      Map<String, Object> gameState = new HashMap<>();
+      gameState.put("guesses", player.getGuesses());
+      gameState.put("guessResults", player.getGuessResults());
+      gameState.put("finished", player.isFinished());
+      gameState.put("won", player.isHasWon());
+      gameState.put("rank", player.getRank());
+      gameState.put("points", player.getPoints());
+
+      // Only include target word if game is finished
+      if (room.getStatus() == MultiPlayerRoom.RoomStatus.FINISHED) {
+        gameState.put("targetWord", room.getCurrentWord());
+      }
+
+      return ResponseEntity.ok(gameState);
+    } catch (Exception e) {
+      return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+    }
+  }
+
+  @PostMapping("/guess")
+  public ResponseEntity<?> submitGuess(@RequestBody Map<String, String> request) {
+    try {
+      String roomId = request.get("roomId");
+      String playerId = request.get("playerId");
+      String guess = request.get("guess");
+
+      MultiPlayerRoom room = multiPlayerService.getRoom(roomId);
+      Player player = room.getPlayers().stream()
+              .filter(p -> p.getPlayerId().equals(playerId))
+              .findFirst()
+              .orElse(null);
+
+      multiPlayerService.processGuess(roomId, playerId, guess);
+
+      Player updatedPlayer = room.getPlayers().stream()
+              .filter(p -> p.getPlayerId().equals(playerId))
+              .findFirst()
+              .orElse(null);
+
+      List<GuessResult> result = updatedPlayer.getGuessResults().get(updatedPlayer.getGuessResults().size() - 1);
+
+      Map<String, Object> gameState = new HashMap<>();
+      gameState.put("guesses", updatedPlayer.getGuesses());
+      gameState.put("guessResults", updatedPlayer.getGuessResults());
+      gameState.put("finished", updatedPlayer.isFinished());
+      gameState.put("won", updatedPlayer.isHasWon());
+      gameState.put("rank", updatedPlayer.getRank());
+      gameState.put("points", updatedPlayer.getPoints());
+
+      return ResponseEntity.ok(Map.of(
+              "success", true,
+              "result", result,
+              "gameState", gameState
+      ));
+
+    } catch (IllegalArgumentException e) {
+      return ResponseEntity.ok(Map.of(
+              "success", false,
+              "message", e.getMessage()
+      ));
+    } catch (Exception e) {
+      return ResponseEntity.badRequest().body(Map.of(
+              "success", false,
+              "message", "Failed to process guess"
+      ));
+    }
+  }
+
+
 }

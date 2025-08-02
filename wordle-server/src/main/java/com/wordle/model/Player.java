@@ -50,11 +50,13 @@ public class Player {
   public int getPoints() { return points; }
   public void setPoints(int points) { this.points = points; }
 
-  public int getCurrentRound() {
-    return guesses.size();
+  // Add this method to your Player class
+  public boolean isFinished() {
+    return this.hasWon || this.guesses.size() >= 6;
   }
 
-  public boolean isFinished() {
-    return hasWon || getCurrentRound() >= 6;
+  public int getCurrentRound() {
+    return this.guesses.size();
   }
+
 }

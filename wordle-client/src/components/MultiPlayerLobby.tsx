@@ -1,382 +1,400 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { WordleAPI } from '../services/api';
+import MultiPlayerGame from './MultiPlayerGame';
+import { MultiPlayerRoom, Player } from '../types/game';
 
-interface Room {
-  roomId: string;
-  roomName: string;
-  creatorId: string;
-  players: Player[];
-  maxPlayers: number;
-  status: 'WAITING' | 'IN_PROGRESS' | 'FINISHED';
-  winnerId?: string;
+interface MultiPlayerLobbyProps {
+  onLeaveRoom: () => void;
 }
 
-interface Player {
-  playerId: string;
-  username: string;
-  guesses: string[];
-  guessResults: any[][];
-  hasWon: boolean;
-  rank: number;
-  points: number;
-}
-
-const MultiPlayerLobby: React.FC = () => {
-  const [currentRoom, setCurrentRoom] = useState<Room | null>(null);
-  const [availableRooms, setAvailableRooms] = useState<Room[]>([]);
-  
-  // Fix 1: Persist player ID in localStorage to survive page refreshes
-  const [playerId] = useState(() => {
-    let id = localStorage.getItem('wordle-player-id');
-    if (!id) {
-      id = `player_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      localStorage.setItem('wordle-player-id', id);
-    }
-    return id;
-  });
-  
-  const [username, setUsername] = useState(() => {
-    // Also persist username
-    return localStorage.getItem('wordle-username') || '';
-  });
-  
-  const [roomName, setRoomName] = useState('');
-  const [maxPlayers, setMaxPlayers] = useState(4);
-  const [roomIdToJoin, setRoomIdToJoin] = useState('');
-  const [wsConnected, setWsConnected] = useState(false);
-  
-  // Fix 2: Add WebSocket polling as fallback for real-time updates
+const MultiPlayerLobby: React.FC<MultiPlayerLobbyProps> = ({
+  onLeaveRoom
+}) => {
+  const [availableRooms, setAvailableRooms] = useState<MultiPlayerRoom[]>([]);
+  const [currentRoom, setCurrentRoom] = useState<MultiPlayerRoom | null>(null);
+  const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null);
+  const [playerId, setPlayerId] = useState<string>('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [roomPollingInterval, setRoomPollingInterval] = useState<NodeJS.Timeout | null>(null);
+  const [wsConnected, setWsConnected] = useState(false);
 
+  // Load available rooms on component mount
   useEffect(() => {
-    console.log('Component mounted, loading rooms...');
-    loadAvailableRooms();
-    
-    // Save username to localStorage when it changes
-    if (username) {
-      localStorage.setItem('wordle-username', username);
-    }
-  }, [username]);
-
-// Fix 3: Set up room polling when in a room but WebSocket isn't working
-useEffect(() => {
-  if (currentRoom && currentRoom.status === 'WAITING') {
-    // Poll room status every 2 seconds to get real-time updates as fallback
-    const interval = setInterval(async () => {
+    const loadAvailableRooms = async () => {
       try {
-        const updatedRoom = await WordleAPI.getMultiPlayerRoom(currentRoom.roomId);
-        if (updatedRoom && JSON.stringify(updatedRoom) !== JSON.stringify(currentRoom)) {
-          console.log('Room updated via polling:', updatedRoom);
-          setCurrentRoom(updatedRoom);
-        }
-      } catch (error) {
-        console.error('Failed to poll room updates:', error);
+        setLoading(true);
+        const rooms = await WordleAPI.getAvailableRooms();
+        setAvailableRooms(rooms || []);
+      } catch (err) {
+        console.error('Failed to load available rooms:', err);
+        setError('Failed to load available rooms');
+      } finally {
+        setLoading(false);
       }
-    }, 2000);
-    
-    setRoomPollingInterval(interval);
-    
-    return () => {
-      clearInterval(interval);
     };
-  } else {
-    // Clear polling when not needed
-    if (roomPollingInterval) {
-      clearInterval(roomPollingInterval);
-      setRoomPollingInterval(null);
-    }
-  }
-}, [currentRoom]); // Remove roomPollingInterval from dependencies
 
+    loadAvailableRooms();
+  }, []);
 
-  // Fix 4: Simulate WebSocket messages with HTTP polling for now
-  const simulateWebSocketConnection = (roomId: string) => {
-    console.log('Simulating WebSocket connection for room:', roomId);
-    setWsConnected(true);
-    
-    // In a real implementation, you would connect to WebSocket here
-    // For now, we're using the polling mechanism above
-  };
+  // Load specific room data when a room is selected
+  useEffect(() => {
+    if (!selectedRoomId) return;
 
-  const loadAvailableRooms = async () => {
-    try {
-      console.log('Loading available rooms...');
-      const rooms = await WordleAPI.getAvailableRooms();
-      console.log('Loaded rooms:', rooms);
-      setAvailableRooms(rooms);
-    } catch (error) {
-      console.error('Failed to load rooms:', error);
-    }
-  };
+    const loadRoom = async () => {
+      try {
+        setLoading(true);
+        const room = await WordleAPI.getMultiPlayerRoom(selectedRoomId);
+        if (room) {
+          setCurrentRoom(room);
+        } else {
+          setError('Room not found');
+        }
+      } catch (err) {
+        console.error('Failed to load room:', err);
+        setError('Failed to load room');
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const createRoom = async () => {
-    if (!username.trim() || !roomName.trim()) {
-      alert('Please enter your username and room name');
-      return;
-    }
+    loadRoom();
+  }, [selectedRoomId]);
 
-    try {
-      console.log('Creating room...');
-      const room = await WordleAPI.createMultiPlayerRoom({
-        creatorId: playerId,
-        roomName: roomName.trim(),
-        username: username.trim(),
-        maxPlayers
-      });
-      console.log('Room created:', room);
-      setCurrentRoom(room);
-      simulateWebSocketConnection(room.roomId);
-    } catch (error) {
-      console.error('Failed to create room:', error);
-      alert('Failed to create room. Please try again.');
-    }
-  };
-
-  const joinRoom = async (roomId: string) => {
-    if (!username.trim()) {
-      alert('Please enter your username');
-      return;
-    }
-
-    try {
-      console.log('Joining room:', roomId);
-      const room = await WordleAPI.joinMultiPlayerRoom({
-        roomId,
-        playerId,
-        username: username.trim()
-      });
-      console.log('Joined room:', room);
-      setCurrentRoom(room);
-      simulateWebSocketConnection(roomId);
-    } catch (error) {
-      console.error('Failed to join room:', error);
-      alert('Failed to join room. Please try again.');
-    }
-  };
-
-  const startGame = async () => {
-    if (!currentRoom) return;
-
-    try {
-      console.log('Starting game for room:', currentRoom.roomId);
-      await WordleAPI.startMultiPlayerGame(currentRoom.roomId);
-      console.log('Game start request sent');
-      
-      // Manually refresh room state after starting game
-      setTimeout(async () => {
+  // Set up room polling when in a room but WebSocket isn't working
+  useEffect(() => {
+    if (currentRoom && (currentRoom.status === 'WAITING' || currentRoom.status === 'IN_PROGRESS')) {
+      const interval = setInterval(async () => {
         try {
           const updatedRoom = await WordleAPI.getMultiPlayerRoom(currentRoom.roomId);
-          setCurrentRoom(updatedRoom);
+          if (updatedRoom && JSON.stringify(updatedRoom) !== JSON.stringify(currentRoom)) {
+            console.log('Room updated via polling:', updatedRoom);
+            setCurrentRoom(updatedRoom);
+          }
         } catch (error) {
-          console.error('Failed to get updated room after game start:', error);
+          console.error('Failed to poll room updates:', error);
         }
-      }, 1000);
+      }, 2000);
       
-    } catch (error) {
-      console.error('Failed to start game:', error);
-      alert('Failed to start game. Please try again.');
+      setRoomPollingInterval(interval);
+      
+      return () => {
+        clearInterval(interval);
+      };
+    } else {
+      if (roomPollingInterval) {
+        clearInterval(roomPollingInterval);
+        setRoomPollingInterval(null);
+      }
+    }
+  }, [currentRoom]);
+
+  const handleJoinRoom = async (roomId: string) => {
+    if (!playerId.trim()) {
+      setError('Please enter a player ID');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const joinRequest = {
+        roomId,
+        playerId: playerId.trim(),
+        username: playerId.trim()
+      };
+      
+      const room = await WordleAPI.joinMultiPlayerRoom(joinRequest);
+      setCurrentRoom(room);
+      setSelectedRoomId(roomId);
+    } catch (err) {
+      console.error('Failed to join room:', err);
+      setError('Failed to join room');
+    } finally {
+      setLoading(false);
     }
   };
 
-  const leaveRoom = () => {
-    // Clear polling interval
+  const handleCreateRoom = async () => {
+    if (!playerId.trim()) {
+      setError('Please enter a player ID');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const createRequest = {
+        creatorId: playerId.trim(),
+        roomName: `${playerId.trim()}'s Room`,
+        username: playerId.trim(),
+        maxPlayers: 4
+      };
+      
+      const room = await WordleAPI.createMultiPlayerRoom(createRequest);
+      setCurrentRoom(room);
+      setSelectedRoomId(room.roomId);
+    } catch (err) {
+      console.error('Failed to create room:', err);
+      setError('Failed to create room');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleStartGame = async () => {
+    if (!currentRoom || playerId !== currentRoom.creatorId) return;
+
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const response = await WordleAPI.startMultiPlayerGame(currentRoom.roomId, playerId);
+      if (response.success) {
+        console.log('Game started successfully');
+      } else {
+        setError(response.message || 'Failed to start game');
+      }
+    } catch (err) {
+      console.error('Failed to start game:', err);
+      setError('Failed to start game');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleLeaveRoom = () => {
     if (roomPollingInterval) {
       clearInterval(roomPollingInterval);
       setRoomPollingInterval(null);
     }
     
-    setWsConnected(false);
+    // Reset to room selection view
     setCurrentRoom(null);
+    setSelectedRoomId(null);
+    setError(null);
     
     // Refresh available rooms
+    const loadAvailableRooms = async () => {
+      try {
+        const rooms = await WordleAPI.getAvailableRooms();
+        setAvailableRooms(rooms || []);
+      } catch (err) {
+        console.error('Failed to refresh rooms:', err);
+      }
+    };
     loadAvailableRooms();
   };
 
-  // Fix 5: Add manual refresh button for immediate updates
-  const refreshRoom = async () => {
-    if (!currentRoom) return;
-    
-    try {
-      console.log('Manually refreshing room...');
-      const updatedRoom = await WordleAPI.getMultiPlayerRoom(currentRoom.roomId);
-      setCurrentRoom(updatedRoom);
-      console.log('Room refreshed:', updatedRoom);
-    } catch (error) {
-      console.error('Failed to refresh room:', error);
+  const handleBackToMainLobby = () => {
+    if (roomPollingInterval) {
+      clearInterval(roomPollingInterval);
+      setRoomPollingInterval(null);
     }
+    onLeaveRoom();
   };
 
-  // Show simple game interface when game is in progress
-  if (currentRoom && (currentRoom.status === 'IN_PROGRESS' || currentRoom.status === 'FINISHED')) {
-    return (
-      <div className="multiplayer-lobby">
-        <h2>🎮 Game: {currentRoom.roomName}</h2>
-        <p>Status: <strong>{currentRoom.status}</strong></p>
-        <p>Player ID: <code>{playerId}</code></p>
-        <p>Updates: <strong>{wsConnected ? '🟢 Live (Polling)' : '🔴 Manual'}</strong></p>
-        
-        <button onClick={refreshRoom} className="refresh-btn">
-          🔄 Refresh Game
-        </button>
-        
-        <div className="players-section">
-          <h3>Players in Game</h3>
-          {currentRoom.players.map(player => (
-            <div key={player.playerId} className={`player-card ${player.playerId === playerId ? 'current-player' : ''}`}>
-              <h4>
-                {player.username} 
-                {player.hasWon && <span className="winner-badge">🏆</span>}
-                {player.playerId === playerId && <span className="you-badge">(You)</span>}
-              </h4>
-              <p>Guesses: {player.guesses.length}/6</p>
-            </div>
-          ))}
-        </div>
+  const renderGameContent = () => {
+    if (loading && availableRooms.length === 0 && !currentRoom) {
+      return <div className="loading">Loading rooms...</div>;
+    }
 
-        <button onClick={leaveRoom} className="leave-room-btn">
-          Leave Game
-        </button>
-        
-        <p><strong>🎯 Game interface would be fully interactive here</strong></p>
-      </div>
-    );
-  }
-
-  // Show room waiting lobby
-  if (currentRoom) {
-    return (
-      <div className="multiplayer-lobby">
-        <h2>🏠 Room: {currentRoom.roomName}</h2>
-        <p>Room ID: <strong>{currentRoom.roomId}</strong></p>
-        <p>Status: {currentRoom.status}</p>
-        <p>Player ID: <code>{playerId}</code></p>
-        <p>Updates: <strong>{wsConnected ? '🟢 Live (Polling every 2s)' : '🔴 Manual'}</strong></p>
-        <p>Players ({currentRoom.players.length}/{currentRoom.maxPlayers})</p>
-        
-        <button onClick={refreshRoom} className="refresh-btn">
-          🔄 Refresh Room
-        </button>
-        
-        <div className="participants-list">
-          {currentRoom.players.map(player => (
-            <div key={player.playerId} className="participant">
-              <span>{player.username}</span>
-              {player.playerId === currentRoom.creatorId && <span className="creator-badge">Host</span>}
-              {player.playerId === playerId && <span className="you-badge">(You)</span>}
-            </div>
-          ))}
-        </div>
-
-        {currentRoom.creatorId === playerId && (
-          <button 
-            onClick={startGame}
-            disabled={currentRoom.players.length < 2}
-            className="start-game-btn"
-          >
-            Start Game ({currentRoom.players.length}/2+ players)
+    if (error && !currentRoom) {
+      return (
+        <div className="error-container">
+          <div className="error-message">{error}</div>
+          <button onClick={handleBackToMainLobby} className="back-button">
+            Back to Main Menu
           </button>
-        )}
-
-        <button onClick={leaveRoom} className="leave-room-btn">
-          Leave Room
-        </button>
-        
-        <div className="debug-info">
-          <h4>Debug Info:</h4>
-          <p>Your Player ID: <code>{playerId}</code></p>
-          <p>Room Creator: <code>{currentRoom.creatorId}</code></p>
-          <p>You are {playerId === currentRoom.creatorId ? 'the HOST' : 'a PARTICIPANT'}</p>
         </div>
-      </div>
-    );
-  }
+      );
+    }
 
-  // Main lobby interface
-  return (
-    <div className="multiplayer-lobby">
-      <h2>🎯 Multi-player Wordle</h2>
-      <p>Your Player ID: <code>{playerId}</code></p>
-      
-      <div className="user-setup">
-        <input
-          type="text"
-          placeholder="Enter your username"
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-          className="username-input"
+    // Show game interface when room is in progress
+    if (currentRoom?.status === 'IN_PROGRESS') {
+      return (
+        <MultiPlayerGame 
+          roomId={currentRoom.roomId}
+          playerId={playerId}
+          players={currentRoom.players}
+          onGameEnd={() => {
+            setCurrentRoom(prev => prev ? { ...prev, status: 'FINISHED' } : null);
+          }}
+          onLeaveGame={handleLeaveRoom}
         />
-        {username && <p>✅ Username saved: <strong>{username}</strong></p>}
-      </div>
+      );
+    }
 
-      <div className="create-room-section">
-        <h3>Create New Room</h3>
-        <input
-          type="text"
-          placeholder="Room name"
-          value={roomName}
-          onChange={(e) => setRoomName(e.target.value)}
-          className="room-name-input"
-        />
-        <select 
-          value={maxPlayers} 
-          onChange={(e) => setMaxPlayers(parseInt(e.target.value))}
-          className="max-players-select"
-        >
-          <option value={2}>2 Players</option>
-          <option value={3}>3 Players</option>
-          <option value={4}>4 Players</option>
-          <option value={6}>6 Players</option>
-          <option value={8}>8 Players</option>
-        </select>
-        <button onClick={createRoom} className="create-room-btn">
-          Create Room
-        </button>
-      </div>
+    // Show specific room lobby when a room is selected
+    if (currentRoom && currentRoom.status === 'WAITING') {
+      return (
+        <div className="multiplayer-lobby">
+          <div className="lobby-header">
+            <h2>Room Lobby</h2>
+            <button onClick={handleLeaveRoom} className="leave-button">
+              Leave Room
+            </button>
+          </div>
+          
+          <div className="room-info">
+            <div className="room-details">
+              <h3>Room: {currentRoom.roomId}</h3>
+              <p>Status: <span className={`status ${currentRoom.status.toLowerCase()}`}>{currentRoom.status}</span></p>
+              <p>Player ID: <code>{playerId}</code></p>
+              <p>Updates: <span className={wsConnected ? 'connected' : 'polling'}>
+                {wsConnected ? '🟢 Live' : '🔴 Polling'}
+              </span></p>
+            </div>
+          </div>
 
-      <div className="join-by-id-section">
-        <h3>Join by Room ID</h3>
-        <input
-          type="text"
-          placeholder="Enter room ID"
-          value={roomIdToJoin}
-          onChange={(e) => setRoomIdToJoin(e.target.value.toUpperCase())}
-          className="room-id-input"
-        />
-        <button 
-          onClick={() => joinRoom(roomIdToJoin)}
-          disabled={!roomIdToJoin.trim()}
-          className="join-room-btn"
-        >
-          Join Room
-        </button>
-      </div>
+          <div className="players-section">
+            <h3>Players ({currentRoom.players.length}/{currentRoom.maxPlayers})</h3>
+            <div className="players-list">
+              {currentRoom.players.map((player: Player) => (
+                <div key={player.playerId} className="player-item">
+                  <div className="player-info">
+                    <span className="player-name">{player.username || player.playerId}</span>
+                    {player.playerId === currentRoom.creatorId && (
+                      <span className="host-badge">HOST</span>
+                    )}
+                  </div>
+                  <div className="player-status">
+                    {player.playerId === playerId && <span className="you-badge">YOU</span>}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
 
-      <div className="available-rooms-section">
-        <h3>Available Rooms</h3>
-        <button onClick={loadAvailableRooms} className="refresh-btn">
-          🔄 Refresh
-        </button>
-        
-        <div className="rooms-list">
-          {availableRooms.length === 0 ? (
-            <p>No rooms available</p>
-          ) : (
-            availableRooms.map(room => (
-              <div key={room.roomId} className="room-card">
-                <h4>{room.roomName}</h4>
-                <p>ID: {room.roomId}</p>
-                <p>{room.players.length}/{room.maxPlayers} players</p>
-                <button 
-                  onClick={() => joinRoom(room.roomId)}
-                  className="join-room-btn"
-                >
-                  Join Room
-                </button>
+          <div className="game-controls">
+            {playerId === currentRoom.creatorId ? (
+              <button 
+                onClick={handleStartGame}
+                disabled={loading || currentRoom.players.length < 2}
+                className="start-game-btn primary-button"
+              >
+                {loading ? 'Starting...' : 'Start Game'}
+              </button>
+            ) : (
+              <div className="waiting-message">
+                Waiting for host to start the game...
               </div>
-            ))
+            )}
+            
+            {currentRoom.players.length < 2 && (
+              <p className="min-players-notice">
+                Need at least 2 players to start the game
+              </p>
+            )}
+          </div>
+
+          {error && (
+            <div className="error-message">{error}</div>
           )}
         </div>
+      );
+    }
+
+    // Show game finished state
+    if (currentRoom?.status === 'FINISHED') {
+      return (
+        <div className="game-finished">
+          <h2>Game Finished!</h2>
+          <div className="final-results">
+            <h3>Final Results:</h3>
+            <div className="players-results">
+              {currentRoom.players
+                .sort((a, b) => (a.rank || 999) - (b.rank || 999))
+                .map((player: Player) => (
+                  <div key={player.playerId} className="player-result">
+                    <span className="rank">#{player.rank || '-'}</span>
+                    <span className="name">{player.username || player.playerId}</span>
+                    <span className="guesses">{player.guesses?.length || 0}/6 guesses</span>
+                  </div>
+                ))}
+            </div>
+          </div>
+          <button onClick={handleLeaveRoom} className="back-button">
+            Back to Room Selection
+          </button>
+        </div>
+      );
+    }
+
+    // Default view: Show available rooms
+    return (
+      <div className="room-selection">
+        <div className="room-selection-header">
+          <h2>Multiplayer Lobby</h2>
+          <button onClick={handleBackToMainLobby} className="back-button">
+            Back to Main Menu
+          </button>
+        </div>
+
+        <div className="player-input">
+          <label htmlFor="playerId">Enter your Player ID:</label>
+          <input
+            id="playerId"
+            type="text"
+            value={playerId}
+            onChange={(e) => setPlayerId(e.target.value)}
+            placeholder="Enter your player ID"
+            className="player-id-input"
+          />
+        </div>
+
+        <div className="room-actions">
+          <button 
+            onClick={handleCreateRoom}
+            disabled={loading || !playerId.trim()}
+            className="create-room-btn primary-button"
+          >
+            {loading ? 'Creating...' : 'Create New Room'}
+          </button>
+        </div>
+
+        <div className="available-rooms">
+          <h3>Available Rooms</h3>
+          {availableRooms.length === 0 ? (
+            <div className="no-rooms">
+              <p>No rooms available. Create a new room to get started!</p>
+            </div>
+          ) : (
+            <div className="rooms-list">
+              {availableRooms.map((room) => (
+                <div key={room.roomId} className="room-item">
+                  <div className="room-info">
+                    <h4>{room.roomName || room.roomId}</h4>
+                    <p>Players: {room.players.length}/{room.maxPlayers}</p>
+                    <p>Status: <span className={`status ${room.status.toLowerCase()}`}>{room.status}</span></p>
+                  </div>
+                  <div className="room-actions">
+                    <button
+                      onClick={() => handleJoinRoom(room.roomId)}
+                      disabled={loading || !playerId.trim() || room.players.length >= room.maxPlayers || room.status !== 'WAITING'}
+                      className="join-room-btn"
+                    >
+                      {loading ? 'Joining...' : 'Join Room'}
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {error && (
+          <div className="error-message">{error}</div>
+        )}
       </div>
+    );
+  };
+
+  return (
+    <div className="multiplayer-container">
+      {renderGameContent()}
     </div>
   );
 };
