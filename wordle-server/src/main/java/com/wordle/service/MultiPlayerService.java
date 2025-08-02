@@ -13,11 +13,9 @@ public class MultiPlayerService {
 
   private final Map<String, MultiPlayerRoom> rooms = new ConcurrentHashMap<>();
   private final WordleService wordleService;
-  private final SimpMessagingTemplate messagingTemplate;
 
-  public MultiPlayerService(WordleService wordleService, SimpMessagingTemplate messagingTemplate) {
+  public MultiPlayerService(WordleService wordleService) {
     this.wordleService = wordleService;
-    this.messagingTemplate = messagingTemplate;
   }
 
   public MultiPlayerRoom createRoom(String creatorId, String roomName, int maxPlayers, String username) {
@@ -53,9 +51,6 @@ public class MultiPlayerService {
       Player player = new Player(playerId, username);
       room.getPlayers().add(player);
 
-      // Broadcast player joined
-      messagingTemplate.convertAndSend("/topic/room/" + roomId,
-              Map.of("type", "PLAYER_JOINED", "room", room));
     }
 
     return room;
@@ -88,8 +83,6 @@ public class MultiPlayerService {
     Map<String, Object> gameData = new HashMap<>();
     gameData.put("type", "GAME_STARTED");
     gameData.put("room", sanitizeRoomForClient(room));
-
-    messagingTemplate.convertAndSend("/topic/room/" + roomId, gameData);
   }
 
   public void processGuess(String roomId, String playerId, String guess) {
@@ -149,7 +142,6 @@ public class MultiPlayerService {
     guessData.put("result", result);
     guessData.put("room", sanitizeRoomForClient(room));
 
-    messagingTemplate.convertAndSend("/topic/room/" + roomId, guessData);
   }
 
   private void checkGameEnd(MultiPlayerRoom room) {
@@ -165,7 +157,6 @@ public class MultiPlayerService {
       endData.put("room", room); // Include full room with word revealed
       endData.put("targetWord", room.getCurrentWord());
 
-      messagingTemplate.convertAndSend("/topic/room/" + room.getRoomId(), endData);
     }
   }
 
