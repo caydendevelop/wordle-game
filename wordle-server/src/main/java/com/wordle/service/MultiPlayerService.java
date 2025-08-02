@@ -1,7 +1,6 @@
 package com.wordle.service;
 
 import com.wordle.model.*;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;

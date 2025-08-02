@@ -5,8 +5,6 @@ import com.wordle.model.MultiPlayerRoom;
 import com.wordle.model.Player;
 import com.wordle.service.MultiPlayerService;
 import org.springframework.http.ResponseEntity;
-import org.springframework.messaging.handler.annotation.DestinationVariable;
-import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
@@ -63,17 +61,6 @@ public class MultiPlayerController {
       return ResponseEntity.ok().build();
     } catch (IllegalArgumentException e) {
       return ResponseEntity.badRequest().build();
-    }
-  }
-
-  @MessageMapping("/guess/{roomId}")
-  public void makeGuess(@DestinationVariable String roomId, Map<String, String> request) {
-    try {
-      String playerId = request.get("playerId");
-      String guess = request.get("guess");
-      multiPlayerService.processGuess(roomId, playerId, guess);
-    } catch (Exception e) {
-      // Error handling would send error message back to client
     }
   }
 
