@@ -19,7 +19,6 @@ const MultiPlayerLobby: React.FC<MultiPlayerLobbyProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [roomPollingInterval, setRoomPollingInterval] = useState<NodeJS.Timeout | null>(null);
   const [roomsPollingInterval, setRoomsPollingInterval] = useState<NodeJS.Timeout | null>(null);
-  const [wsConnected, setWsConnected] = useState(false);
   const isMountedRef = useRef(true);
 
   // Fetch available rooms function
@@ -198,7 +197,7 @@ const MultiPlayerLobby: React.FC<MultiPlayerLobbyProps> = ({
       setLoading(true);
       setError(null);
       
-      const response = await WordleAPI.startMultiPlayerGame(currentRoom.roomId, playerId);
+      const response = await WordleAPI.startMultiPlayerGame(currentRoom.roomId);
       if (response.success) {
         console.log('Game started successfully');
       } else {
@@ -290,9 +289,6 @@ const MultiPlayerLobby: React.FC<MultiPlayerLobbyProps> = ({
               <h3>Room: {currentRoom.roomId}</h3>
               <p>Status: <span className={`status ${currentRoom.status.toLowerCase()}`}>{currentRoom.status}</span></p>
               <p>Player ID: <code>{playerId}</code></p>
-              <p>Updates: <span className={wsConnected ? 'connected' : 'polling'}>
-                {wsConnected ? '🟢 Live' : '🔴 Polling'}
-              </span></p>
             </div>
           </div>
 

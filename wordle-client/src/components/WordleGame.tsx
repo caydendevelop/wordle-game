@@ -185,8 +185,7 @@ const WordleGame: React.FC = () => {
         guesses={gameState.guesses}
         currentRound={gameState.currentRound}
         maxRounds={gameState.maxRounds}
-        currentGuess={currentGuess}
-      />
+        currentGuess={currentGuess} disabled={false}      />
 
       {gameState.gameOver && (
         <div className="game-over">

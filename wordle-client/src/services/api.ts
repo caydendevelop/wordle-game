@@ -5,12 +5,10 @@ import {
   ErrorResponse, 
   WordleApiError,
   MultiPlayerRoom,
-  Player,
   MultiPlayerGameState,
   GuessResponse,
   CreateRoomRequest,
   JoinRoomRequest,
-  GuessResult
 } from '../types/game';
 
 const getApiBaseUrl = (): string => {
@@ -134,7 +132,7 @@ export class WordleAPI {
     }
   }
 
-  static async startMultiPlayerGame(roomId: string, playerId: string): Promise<{
+  static async startMultiPlayerGame(roomId: string): Promise<{
     success: boolean;
     message?: string;
   }> {
