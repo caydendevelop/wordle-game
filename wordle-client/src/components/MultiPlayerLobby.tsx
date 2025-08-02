@@ -58,37 +58,36 @@ const MultiPlayerLobby: React.FC = () => {
     }
   }, [username]);
 
-  // Fix 3: Set up room polling when in a room but WebSocket isn't working
-  useEffect(() => {
-    if (currentRoom && currentRoom.status === 'WAITING') {
-      // Poll room status every 2 seconds to get real-time updates as fallback
-      const interval = setInterval(async () => {
-        try {
-          const updatedRoom = await WordleAPI.getMultiPlayerRoom(currentRoom.roomId);
-          if (updatedRoom && JSON.stringify(updatedRoom) !== JSON.stringify(currentRoom)) {
-            console.log('Room updated via polling:', updatedRoom);
-            setCurrentRoom(updatedRoom);
-          }
-        } catch (error) {
-          console.error('Failed to poll room updates:', error);
+// Fix 3: Set up room polling when in a room but WebSocket isn't working
+useEffect(() => {
+  if (currentRoom && currentRoom.status === 'WAITING') {
+    // Poll room status every 2 seconds to get real-time updates as fallback
+    const interval = setInterval(async () => {
+      try {
+        const updatedRoom = await WordleAPI.getMultiPlayerRoom(currentRoom.roomId);
+        if (updatedRoom && JSON.stringify(updatedRoom) !== JSON.stringify(currentRoom)) {
+          console.log('Room updated via polling:', updatedRoom);
+          setCurrentRoom(updatedRoom);
         }
-      }, 2000);
-      
-      setRoomPollingInterval(interval);
-      
-      return () => {
-        if (interval) {
-          clearInterval(interval);
-        }
-      };
-    } else {
-      // Clear polling when not needed
-      if (roomPollingInterval) {
-        clearInterval(roomPollingInterval);
-        setRoomPollingInterval(null);
+      } catch (error) {
+        console.error('Failed to poll room updates:', error);
       }
+    }, 2000);
+    
+    setRoomPollingInterval(interval);
+    
+    return () => {
+      clearInterval(interval);
+    };
+  } else {
+    // Clear polling when not needed
+    if (roomPollingInterval) {
+      clearInterval(roomPollingInterval);
+      setRoomPollingInterval(null);
     }
-  }, [currentRoom, roomPollingInterval]);
+  }
+}, [currentRoom]); // Remove roomPollingInterval from dependencies
+
 
   // Fix 4: Simulate WebSocket messages with HTTP polling for now
   const simulateWebSocketConnection = (roomId: string) => {
