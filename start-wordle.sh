@@ -85,27 +85,27 @@ echo "   Logs: ~/wordle/wordle-client/react-dev.log"
 echo "   Waiting for React dev server to initialize..."
 sleep 5
 
-# Start ngrok tunnel
-echo ""
-echo "🌐 Starting ngrok tunnel..."
-ngrok http --url=select-woodcock-lately.ngrok-free.app 3000 > ngrok.log 2>&1 &
-NGROK_PID=$!
-echo "   ngrok tunnel started (PID: $NGROK_PID)"
-echo "   Logs: ~/wordle/wordle-client/ngrok.log"
+### Start ngrok tunnel (This is only for me to create a public URL for you as a plan-b for the game.)
+# echo ""
+# echo "🌐 Starting ngrok tunnel..."
+# ngrok http --url=select-woodcock-lately.ngrok-free.app 3000 > ngrok.log 2>&1 &
+# NGROK_PID=$!
+# echo "   ngrok tunnel started (PID: $NGROK_PID)"
+# echo "   Logs: ~/wordle/wordle-client/ngrok.log"
 
 # Display service information
 echo ""
 echo "🎉 All services started successfully!"
 echo "======================================="
 echo "📱 Local React App:     http://localhost:3000"
-echo "🔗 Public ngrok URL:    https://select-woodcock-lately.ngrok-free.app"
+#echo "🔗 Public ngrok URL:    https://select-woodcock-lately.ngrok-free.app"
 echo "🖥️  Spring Boot API:    http://localhost:8080"
 echo "📊 API Test:           http://localhost:8080/api/wordle"
 echo ""
 echo "📋 Service Status:"
 echo "   Spring Boot PID: $SPRING_PID"
 echo "   React Dev PID:   $REACT_PID"
-echo "   ngrok PID:       $NGROK_PID"
+#echo "   ngrok PID:       $NGROK_PID"
 echo ""
 echo "💡 Tips:"
 echo "   - Press Ctrl+C to stop all services"
