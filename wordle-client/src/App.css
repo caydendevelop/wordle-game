@@ -1,19 +1,77 @@
-#root {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
+body {
+  font-family: 'Inter', system-ui, Arial, sans-serif;
+  background: #f4f6fb;
+  color: #222;
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
 }
 
 .App {
-  min-height: 100vh;
-  background-color: #ffffff;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: flex-start;
+  min-height: 100vh;
 }
 
-* {
+/* Navigation bar */
+.navigation {
+  width: 100%;
+  background: #202b43;
+  box-shadow: 0 2px 8px rgba(16,32,90,0.08);
+}
+
+.nav-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 1rem 2rem;
+}
+
+.app-title {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: #fafafa;
+}
+
+.nav-links {
+  display: flex;
+  gap: 1.15rem;
+}
+
+.nav-link {
+  color: #fbc02d;
+  background: transparent;
+  text-decoration: none;
+  font-weight: 500;
+  border-radius: 6px;
+  padding: 6px 15px;
+  transition: background 0.18s;
+}
+
+.nav-link:hover,
+.nav-link.active {
+  background: #273154;
+  color: #fff;
+}
+
+.main-content {
+  flex: 1;
+  padding: 2rem;
+  max-width: 1100px;
+  width: 100%;
+  margin: 0 auto;
   box-sizing: border-box;
+}
+
+@media (max-width: 700px) {
+  .nav-container {
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 0.6rem 1rem;
+  }
+  .main-content {
+    padding: 1rem;
+  }
 }

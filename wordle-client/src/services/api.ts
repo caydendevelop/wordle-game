@@ -1,7 +1,29 @@
 import axios, { AxiosError } from 'axios';
-import { GameState, GuessRequest, ErrorResponse, WordleApiError } from '../types/game';
+import { 
+  GameState, 
+  GuessRequest, 
+  ErrorResponse, 
+  WordleApiError,
+  MultiPlayerRoom,
+  MultiPlayerGameState,
+  GuessResponse,
+  CreateRoomRequest,
+  JoinRoomRequest,
+} from '../types/game';
 
-const API_BASE_URL = '/api/wordle';
+const getApiBaseUrl = (): string => {
+  return 'http://localhost:8080';
+};
+
+const API_BASE_URL = getApiBaseUrl() + '/api/wordle';
+console.log('API Base URL:', API_BASE_URL);
+
+
+axios.interceptors.request.use(request => {
+  console.log('API Request:', request.method?.toUpperCase(), request.url);
+  return request;
+});
+
 
 export class WordleAPI {
   private static handleError(error: AxiosError): never {
@@ -18,7 +40,6 @@ export class WordleAPI {
       }
     }
     
-    // Handle network errors
     if (error.code === 'ECONNREFUSED' || error.code === 'ERR_NETWORK') {
       throw new WordleApiError(
         'NETWORK_ERROR',
@@ -27,7 +48,6 @@ export class WordleAPI {
       );
     }
     
-    // Handle timeout errors
     if (error.code === 'ECONNABORTED') {
       throw new WordleApiError(
         'TIMEOUT_ERROR',
@@ -36,15 +56,18 @@ export class WordleAPI {
       );
     }
     
-    // Generic error fallback
     const status = error.response?.status || 500;
     const message = error.response?.statusText || 'An unexpected error occurred';
     throw new WordleApiError('UNKNOWN_ERROR', status, message);
   }
 
+  // Single-player methods
   static async createNewGame(maxRounds: number = 6): Promise<GameState> {
     try {
-      const response = await axios.post<GameState>(`${API_BASE_URL}/new-game?maxRounds=${maxRounds}`);
+      const response = await axios.post<GameState>(`${API_BASE_URL}/new-game?maxRounds=${maxRounds}`, {}, {
+        headers: { 'Content-Type': 'application/json' },
+        timeout: 10000,
+      });
       return response.data;
     } catch (error) {
       throw this.handleError(error as AxiosError);
@@ -53,11 +76,9 @@ export class WordleAPI {
 
   static async makeGuess(request: GuessRequest): Promise<GameState> {
     try {
-      console.log('Making guess request:', request);
       const response = await axios.post<GameState>(`${API_BASE_URL}/guess`, request, {
-        headers: {
-          'Content-Type': 'application/json',
-        }
+        headers: { 'Content-Type': 'application/json' },
+        timeout: 10000,
       });
       return response.data;
     } catch (error) {
@@ -67,7 +88,9 @@ export class WordleAPI {
 
   static async getGame(gameId: string): Promise<GameState> {
     try {
-      const response = await axios.get<GameState>(`${API_BASE_URL}/game/${gameId}`);
+      const response = await axios.get<GameState>(`${API_BASE_URL}/game/${gameId}`, {
+        timeout: 10000,
+      });
       return response.data;
     } catch (error) {
       throw this.handleError(error as AxiosError);
@@ -76,8 +99,110 @@ export class WordleAPI {
 
   static async deleteGame(gameId: string): Promise<void> {
     try {
-      await axios.delete(`${API_BASE_URL}/game/${gameId}`);
+      await axios.delete(`${API_BASE_URL}/game/${gameId}`, {
+        timeout: 10000,
+      });
     } catch (error) {
+      throw this.handleError(error as AxiosError);
+    }
+  }
+
+  // Multiplayer methods
+  static async createMultiPlayerRoom(request: CreateRoomRequest): Promise<MultiPlayerRoom> {
+    try {
+      const response = await axios.post<MultiPlayerRoom>(`${getApiBaseUrl()}/api/multiplayer/create-room`, request, {
+        headers: { 'Content-Type': 'application/json' },
+        timeout: 10000,
+      });
+      return response.data;
+    } catch (error) {
+      throw this.handleError(error as AxiosError);
+    }
+  }
+
+  static async joinMultiPlayerRoom(request: JoinRoomRequest): Promise<MultiPlayerRoom> {
+    try {
+      const response = await axios.post<MultiPlayerRoom>(`${getApiBaseUrl()}/api/multiplayer/join-room`, request, {
+        headers: { 'Content-Type': 'application/json' },
+        timeout: 10000,
+      });
+      return response.data;
+    } catch (error) {
+      throw this.handleError(error as AxiosError);
+    }
+  }
+
+  static async startMultiPlayerGame(roomId: string): Promise<{
+    success: boolean;
+    message?: string;
+  }> {
+    try {
+      await axios.post(`${getApiBaseUrl()}/api/multiplayer/start-game`, {
+        roomId
+      }, {
+        headers: { 'Content-Type': 'application/json' },
+        timeout: 10000,
+      });
+      
+      return { success: true };
+    } catch (error) {
+      if (error instanceof AxiosError && error.response?.status === 400) {
+        const errorMessage = error.response.data?.message || 'Cannot start game';
+        return { success: false, message: errorMessage };
+      }
+      throw this.handleError(error as AxiosError);
+    }
+  }
+
+  static async getMultiPlayerRoom(roomId: string): Promise<MultiPlayerRoom> {
+    try {
+      const response = await axios.get<MultiPlayerRoom>(`${getApiBaseUrl()}/api/multiplayer/room/${roomId}`, {
+        timeout: 10000,
+      });
+      return response.data;
+    } catch (error) {
+      throw this.handleError(error as AxiosError);
+    }
+  }
+
+  static async getAvailableRooms(): Promise<MultiPlayerRoom[]> {
+    try {
+      const response = await axios.get<MultiPlayerRoom[]>(`${getApiBaseUrl()}/api/multiplayer/rooms`, {
+        timeout: 10000,
+      });
+      return response.data;
+    } catch (error) {
+      throw this.handleError(error as AxiosError);
+    }
+  }
+
+  static async getMultiPlayerGameState(roomId: string, playerId: string): Promise<MultiPlayerGameState> {
+    try {
+      const response = await axios.get(`${getApiBaseUrl()}/api/multiplayer/game-state/${roomId}/${playerId}`, {
+        timeout: 10000,
+      });
+      return response.data;
+    } catch (error) {
+      throw this.handleError(error as AxiosError);
+    }
+  }
+
+  static async submitMultiPlayerGuess(roomId: string, playerId: string, guess: string): Promise<GuessResponse> {
+    try {
+      const response = await axios.post(`${getApiBaseUrl()}/api/multiplayer/guess`, {
+        roomId,
+        playerId,
+        guess
+      }, {
+        headers: { 'Content-Type': 'application/json' },
+        timeout: 10000,
+      });
+      return response.data;
+    } catch (error) {
+      if (error instanceof AxiosError && error.response?.status === 400) {
+        const errorMessage = error.response.data?.message || 'Invalid guess';
+        return { success: false, message: errorMessage };
+      }
       throw this.handleError(error as AxiosError);
     }
   }

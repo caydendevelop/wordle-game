@@ -7,6 +7,8 @@ interface GameBoardProps {
   currentRound: number;
   maxRounds: number;
   currentGuess: string;
+  disabled: boolean;
+
 }
 
 const GameBoard: React.FC<GameBoardProps> = ({ 
