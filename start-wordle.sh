@@ -24,12 +24,28 @@ if ! command_exists npm; then
     exit 1
 fi
 
-if ! command_exists ngrok; then
-    echo "❌ ngrok not found. Please install ngrok first."
+# if ! command_exists ngrok; then
+#     echo "❌ ngrok not found. Please install ngrok first."
+#     exit 1
+# fi
+
+echo "✅ All prerequisites found"
+
+# Get the current directory (where the script is run from)
+BASE_DIR=$(pwd)
+
+# Check if required directories exist
+if [ ! -d "$BASE_DIR/wordle-server" ]; then
+    echo "❌ wordle-server directory not found in current directory: $BASE_DIR"
+    echo "Please run this script from the wordle-game root directory."
     exit 1
 fi
 
-echo "✅ All prerequisites found"
+if [ ! -d "$BASE_DIR/wordle-client" ]; then
+    echo "❌ wordle-client directory not found in current directory: $BASE_DIR"
+    echo "Please run this script from the wordle-game root directory."
+    exit 1
+fi
 
 # Function to cleanup processes on script exit
 cleanup() {
@@ -47,10 +63,10 @@ cleanup() {
         kill $REACT_PID 2>/dev/null
     fi
     
-    if [ ! -z "$NGROK_PID" ]; then
-        echo "   Stopping ngrok tunnel (PID: $NGROK_PID)..."
-        kill $NGROK_PID 2>/dev/null
-    fi
+    # if [ ! -z "$NGROK_PID" ]; then
+    #     echo "   Stopping ngrok tunnel (PID: $NGROK_PID)..."
+    #     kill $NGROK_PID 2>/dev/null
+    # fi
     
     echo "✅ All services stopped"
     exit 0
@@ -61,12 +77,19 @@ trap cleanup SIGINT SIGTERM EXIT
 
 # Start Spring Boot backend
 echo ""
+cd "$BASE_DIR/wordle-server"
+echo "📦 Installing Maven dependencies..."
+mvn clean install
+if [ $? -ne 0 ]; then
+echo "❌ Maven install failed. Please check your pom.xml and try again."
+exit 1
+fi
+echo "✅ Maven dependencies installed successfully"
 echo "🚀 Starting Spring Boot server..."
-cd ~/wordle/wordle-server
 mvn spring-boot:run > spring-boot.log 2>&1 &
 SPRING_PID=$!
 echo "   Spring Boot started (PID: $SPRING_PID)"
-echo "   Logs: ~/wordle/wordle-server/spring-boot.log"
+echo "   Logs: $BASE_DIR/wordle-server/spring-boot.log"
 
 # Wait a bit for Spring Boot to start
 echo "   Waiting for Spring Boot to initialize..."
@@ -74,12 +97,19 @@ sleep 10
 
 # Start React frontend
 echo ""
+cd "$BASE_DIR/wordle-client"
+echo "📦 Installing npm dependencies..."
+npm install
+if [ $? -ne 0 ]; then
+echo "❌ npm install failed. Please check your package.json and try again."
+exit 1
+fi
+echo "✅ npm dependencies installed successfully"
 echo "⚛️  Starting React development server..."
-cd ~/wordle/wordle-client
 npm run dev > react-dev.log 2>&1 &
 REACT_PID=$!
 echo "   React dev server started (PID: $REACT_PID)"
-echo "   Logs: ~/wordle/wordle-client/react-dev.log"
+echo "   Logs: $BASE_DIR/wordle-client/react-dev.log"
 
 # Wait a bit for React to start
 echo "   Waiting for React dev server to initialize..."
@@ -91,7 +121,7 @@ sleep 5
 # ngrok http --url=select-woodcock-lately.ngrok-free.app 3000 > ngrok.log 2>&1 &
 # NGROK_PID=$!
 # echo "   ngrok tunnel started (PID: $NGROK_PID)"
-# echo "   Logs: ~/wordle/wordle-client/ngrok.log"
+# echo "   Logs: $BASE_DIR/wordle-client/ngrok.log"
 
 # Display service information
 echo ""
